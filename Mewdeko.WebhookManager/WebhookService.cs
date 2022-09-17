@@ -22,20 +22,21 @@ public class WebhookService
         _restClient = client.Rest;
         client.WebhooksUpdated += HandleWebhooksUpdated;
         _logger = new("WebhookService", Config.LogSeverity);
-        _logger.LogFired += x => Log?.Invoke(x);
+        _logger.LogFired += x => Log?.Invoke(x) ?? Task.CompletedTask;
     }
 
     /// <summary>
     ///     Configures default properties for use in the webhook service.
     /// </summary>
-    public WebhookServiceConfig Config { get; set; }
+    public WebhookServiceConfig Config { get; internal init; }
 
     /// <summary>
     ///     Basic logging for the library, actual messages to come soon™
     /// </summary>
-    public event Func<LogMessage, Task> Log;
-    private DiscordRestClient _restClient { get; set; }
-    private Logger _logger { get; set; }
+    public event Func<LogMessage, Task>? Log;
+
+    private readonly DiscordRestClient _restClient;
+    private readonly Logger _logger;
     private readonly ConcurrentDictionary<ulong, ConcurrentDictionary<ulong, WebhookClientData>> _webhooks = new();
 
     /// <summary>
@@ -97,7 +98,7 @@ public class WebhookService
 
     private async Task<WebhookClientData> GetClientData(IGuildChannel channel, bool forceCacheClient)
     {
-        WebhookClientData result = new();
+        WebhookClientData result;
 
         if (channel is not ITextChannel {Guild: var guild, Id: var channelId} tChannel)
             throw new NotSupportedException(
