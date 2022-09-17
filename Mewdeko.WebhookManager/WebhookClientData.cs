@@ -16,5 +16,5 @@ public class WebhookClientData
     /// <summary>
     ///     Info should be stored for every webhook that cached before it was accessed.
     /// </summary>
-    public IWebhook? ClientInfo { get; set; }
+    public IWebhook ClientInfo { get; set; }
 }

@@ -22,6 +22,7 @@ public class WebhookService
         _restClient = client.Rest;
         client.WebhooksUpdated += HandleWebhooksUpdated;
         _logger = new("WebhookService", Config.LogSeverity);
+        _logger.LogFired += x => Log?.Invoke(x);
     }
 
     /// <summary>
@@ -55,8 +56,21 @@ public class WebhookService
                 guildWebhooks!.GetValueOrDefault(channel.Id, null) is {Client: null} channelWebhook &&
                 Config.CacheMode.HasFlag(WebhookCacheMode.CacheOnWebhookUpdate)
             )
-                channelWebhook.Client = new(channelWebhook.ClientInfo);
+                channelWebhook.Client = CreateClientWithLog(channelWebhook.ClientInfo);
         }
+    }
+
+    private async Task ForceLog(LogMessage message)
+    {
+        await Task.CompletedTask;
+        _logger.Log(message);
+    }
+
+    private DiscordWebhookClient CreateClientWithLog(IWebhook hook)
+    {
+        var c = new DiscordWebhookClient(hook.Id, hook.Token, new() { LogLevel = LogSeverity.Debug });
+        c.Log += ForceLog;
+        return c;
     }
 
     private async Task CacheGuild(IGuild guild)
@@ -70,13 +84,13 @@ public class WebhookService
                 new()
                 {
                     ClientInfo = x,
-                    Client = Config.CacheMode.HasFlag(WebhookCacheMode.CacheAllClients) ? new(x) : null
+                    Client = Config.CacheMode.HasFlag(WebhookCacheMode.CacheAllClients) ? CreateClientWithLog(x) : null
                 }))),
             (_, _) => new(hooks.Select(x => new KeyValuePair<ulong, WebhookClientData>(x.ChannelId,
                 new()
                 {
                     ClientInfo = x,
-                    Client = Config.CacheMode.HasFlag(WebhookCacheMode.CacheAllClients) ? new(x) : null
+                    Client = Config.CacheMode.HasFlag(WebhookCacheMode.CacheAllClients) ? CreateClientWithLog(x) : null
                 }))));
     }
 
@@ -129,7 +143,7 @@ public class WebhookService
         }
 
         if (forceCacheClient && result.Client is null)
-            result.Client = new(result.ClientInfo);
+            result.Client = CreateClientWithLog(result.ClientInfo);
 
         return result;
     }

@@ -25,7 +25,8 @@ client.MessageReceived += async x =>
             Console.WriteLine($"too fast {service}");
             break;
         case "SAY HI YOU DUMBASS":
-            await service.SendMessageAsync((x.Channel as IGuildChannel)!, text: "HI YOU DUMBASS");
+            for(var i = 0; i < 20; i++)
+                await service.SendMessageAsync((x.Channel as IGuildChannel)!, text: "HI YOU DUMBASS");
             Console.WriteLine($"too fast {service}");
             break;
     }
