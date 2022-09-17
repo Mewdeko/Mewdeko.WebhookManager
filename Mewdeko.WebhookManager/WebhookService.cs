@@ -77,6 +77,7 @@ public class WebhookService
     {
         var hooks = (await guild.GetWebhooksAsync())
             .Where(x => !string.IsNullOrEmpty(x.Token))
+            .Where(x => !Config.RequireApplicationOwnedWebhooks || x.ApplicationId == _restClient.CurrentUser.Id)
             .DistinctBy(x => x.ChannelId);
 
         _webhooks.AddOrUpdate(guild.Id,
@@ -120,26 +121,11 @@ public class WebhookService
                 $"No webhooks could be found in {channelId}, if you would like to create missing webhooks automatically enable {nameof(Config.CreateMissingWebhooks)} in your config.");
         else
         {
-            await tChannel.CreateWebhookAsync(Config.AutomaticallyCreatedWebhookName);
-            // TODO: this call should cause an automatic caching of the guilds, but we need to wait a half a second
-            // TODO: to make sure completed. Would it be possible to broadcast an event after a cache update is successful
-            // TODO: and wait for that???
+            var hook = await tChannel.CreateWebhookAsync(Config.AutomaticallyCreatedWebhookName);
 
-            //⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-            //⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⣾⣿⣿⣷⣦⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-            //⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⣿⣿⣿⣿⣿⣿⣿⣦⡀⠒⢶⣄⠀⠀⠀⠀⠀⠀⠀
-            //⠀⢰⣶⣷⣶⣶⣤⣄⠀⣠⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⣾⣿⡆⠀⠀⠀⠀⠀⠀
-            //⠀⢿⣿⣿⣿⣿⡟⢁⣄⠙⠿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠃⠀⠀⠀⠀⠀⠀
-            //⠀⠘⣿⣿⣿⣿⣧⡈⠻⢷⣦⣄⡉⠛⠿⢿⣿⣿⣿⣿⣿⣿⣿⠀⠀⠀⠀⠀⠀⠀
-            //⠀⠀⠈⠻⣿⣿⣿⣿⣶⣄⡈⠙⠻⢷⣶⣤⣄⣈⡉⠛⠛⠛⠃⢠⣀⣀⡀⠀⠀⠀
-            //⠀⠀⠀⠀⠈⠙⠻⢿⣿⣿⣿⣿⣶⣦⣤⣍⣉⠙⠛⠛⠛⠿⠃⢸⣿⣿⣿⣷⡀⠀
-            //⠀⠀⠀⠀⠀⠀⠀⠀⠈⠙⠻⠿⣿⣿⣿⣿⣿⣿⣿⣷⣶⣶⣾⣿⣿⣿⣿⣿⣧⠀
-            //⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠉⠙⠛⠻⠏⠀⠉⠻⢿⣿⣿⣿⣿⠿⠋⠀
-            // Perry the dumbcodeapuss (emojicombos.com)
-            Thread.Sleep(500);
-            result = _webhooks.GetValueOrDefault(guild.Id)?.GetValueOrDefault(channelId) ??
-                   throw new InvalidOperationException(
-                       $"Failed to create a webhook in [{guild.Id}]#[{channelId}]. Make sure your bot has the correct permissions.");
+            // just return the created webhook instead of pulling it from cache. The cache should be automatically
+            // updated, so this should not be an issue
+            result = new() { ClientInfo = hook };
         }
 
         if (forceCacheClient && result.Client is null)

@@ -14,4 +14,5 @@ public class WebhookServiceConfig
 #endif
     public bool CreateMissingWebhooks { get; set; } = true;
     public string AutomaticallyCreatedWebhookName { get; set; } = "a webhook??? PERRY THE WEBHOOK?????";
+    public bool RequireApplicationOwnedWebhooks { get; set; } = false;
 }
